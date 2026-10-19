@@ -9,6 +9,8 @@
 //!   * icons: `cuo:ui/custom` art, tinted with the item hue;
 //!   * hover: `cuo:ui/tooltip-serial` — the host's own OPL tooltip;
 //!   * double-click a row: `actions::move_item` into the backpack;
+//!   * size: `cuo:ui/resizable` — the host's bottom-right corner grip; the
+//!     window's w/h are stored with its position;
 //!   * threshold-cross alerts: a `cuo:chat/message` system line;
 //!   * settings: the Options window's "Mods" page; position / lock / minimized in
 //!     the mod's storage.
@@ -19,7 +21,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use cuo_mod_sdk::actions::{self, Destination};
-use cuo_mod_sdk::host::Scope;
+use cuo_mod_sdk::host::{self, Scope};
 use cuo_mod_sdk::prelude::*;
 use cuo_mod_sdk::types::Item as IsItem;
 use logic::{Band, Reading, Row};
@@ -99,13 +101,15 @@ impl Default for Opts {
 struct Saved {
     x: f32,
     y: f32,
+    w: f32,
+    h: f32,
     locked: bool,
     minimized: bool,
 }
 
 impl Default for Saved {
     fn default() -> Saved {
-        Saved { x: 20.0, y: 120.0, locked: false, minimized: false }
+        Saved { x: 20.0, y: 120.0, w: 0.0, h: 0.0, locked: false, minimized: false }
     }
 }
 
@@ -136,8 +140,10 @@ struct State {
     // What the window / list were last built from; rebuild only when it moves.
     built_opts: Option<Opts>,
     built_rows: Option<(Vec<Row>, bool)>,
-    last_click: Option<(Entity, f32)>,
-}
+    // The width the rows' names were fitted to; a finished resize drag refits them.
+    rows_w: f32,
+    pending_rows: bool,
+    last_click: Option<(Entity, f32)>,}
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
@@ -185,7 +191,7 @@ fn declare_options(mut schema: ResMut<ModOptionsSchema>) {
     ];
 }
 
-/// Game state, options, and the window's own position (stored once a drag ends).
+/// Game state, options, and the window's own position / size (stored once a drag ends).
 #[allow(clippy::type_complexity)]
 #[system]
 fn snap(
@@ -193,9 +199,11 @@ fn snap(
     values: Option<Res<ModOptionsValues>>,
     mouse: Option<Res<MouseInput>>,
     moved: Query<&Node, (With<UiMovable>, Changed<Node>)>,
+    resized: Query<&Node, (With<UiResizable>, Changed<Node>)>,
     mut cmds: Commands,
 ) {
     with(|s| {
+        let mouse_down = mouse.as_ref().is_some_and(|m| m.left);
         s.in_game = game.is_some_and(|g| g.current == GAME_SCREEN);
         let get = |k: &str, d: i32| values.as_ref().and_then(|v| v.values.iter().find(|o| o.key == k).map(|o| o.value)).unwrap_or(d);
         let warn = get(OPT_WARN, 60).clamp(2, 99);
@@ -217,8 +225,26 @@ fn snap(
                 s.save_pending = true;
             }
         }
+        // A resize drag writes width/height instead of left/top — the host only does
+        // one or the other, so the two stores can't share a query.
+        if let Some(n) = s.ui.as_ref().and_then(|u| resized.get(u.root)) {
+            let (w, h) = (n.width.value, n.height.value);
+            if (w, h) != (s.saved.w, s.saved.h) {
+                (s.saved.w, s.saved.h) = (w, h);
+                s.save_pending = true;
+            }
+            // The name column is a fixed fraction of the width: a width change changes
+            // how many characters fit, so the rows must be refitted when the drag ends.
+            if w != s.rows_w {
+                s.pending_rows = true;
+            }
+        }
+        if s.pending_rows && !mouse_down {
+            s.pending_rows = false;
+            s.built_rows = None;
+        }
         // Drags write the node every frame: store once the button is up.
-        if s.save_pending && !mouse.is_some_and(|m| m.left) {
+        if s.save_pending && !mouse_down {
             s.save_pending = false;
             storage::save(Scope::Global, &s.saved);
         }
@@ -388,10 +414,54 @@ impl State {
         150.0 + if self.opts.names { 100.0 } else { 0.0 }
     }
 
+    /// The root's current declared width, in px (the persisted one, or the
+    /// default for the options).
+    fn root_w(&self) -> f32 {
+        if self.saved.w > 0.0 {
+            self.saved.w
+        } else {
+            self.px(self.width()).value
+        }
+    }
+
+    /// The longest prefix of `name` that fits `avail` px — the full name when it
+    /// does. `measure-text` takes the rendered TTF size in the font id's high bits
+    /// (`font & 0x1FF`, size << 9), so no px-scale guessing — the host measures the
+    /// very glyphs the row draws.
+    fn fit(&self, name: &str, face: u16, avail: f32) -> String {
+        let font = (face & 0x1FF) | ((16.0 * self.opts.scale).round() as u16) << 9;
+        let w = |t: &str| host::measure_text(font, t) as f32;
+        if w(name) <= avail {
+            return name.to_string();
+        }
+        let chars: Vec<char> = name.chars().collect();
+        // Binary-search the largest prefix whose `prefix…` fits.
+        let mut lo = 0usize;
+        let mut hi = chars.len();
+        while lo + 2 < hi {
+            let mid = (lo + hi) / 2;
+            let mut t: String = chars[..mid].iter().collect();
+            t.push('…');
+            if w(&t) <= avail {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        let mut t: String = chars[..lo].iter().collect();
+        t.push('…');
+        t
+    }
+
     fn spawn(&mut self, cmds: &mut Commands) {
         let mut n = Node::abs(self.saved.x, self.saved.y, 0.0, 0.0);
-        n.width = self.px(self.width());
-        n.height = Val::auto();
+        n.width = if self.saved.w > 0.0 { Val::px(self.saved.w) } else { self.px(self.width()) };
+        // Concrete height, not auto: the host's resize grip anchors on the node's
+        // declared bottom-right, and an auto-height node declares no bottom. The
+        // default fits the full equipment list; shrink and the list clips, grow and
+        // it pads.
+        n.height = if self.saved.h > 0.0 { Val::px(self.saved.h) } else { self.px(250.0) };
+        n.overflow = overflow::CLIP;
         n.flex_direction = flex_direction::COLUMN;
         n.padding = UiRect { left: self.px(8.0), right: self.px(8.0), top: self.px(4.0), bottom: self.px(6.0) };
         n.border = UiRect::splat(Val::px(1.0));
@@ -405,6 +475,9 @@ impl State {
                 GlobalZIndex { value: Z },
                 UiNoRightClickClose {},
                 UiContainsByBounds {},
+                // Bottom-right grip: drag the window's size. Minus the row / readout
+                // columns the width can't shrink much before the list just clips.
+                UiResizable { min_w: self.opts.scale * 140.0, min_h: self.opts.scale * 90.0, whole_pixels: true, ..Default::default() },
                 UiName { value: "durability.root".into() },
             ))
             .id();
@@ -434,6 +507,7 @@ impl State {
     }
 
     fn build_list(&mut self, cmds: &mut Commands, rows: &[Row]) {
+        self.rows_w = self.root_w();
         let Some(ui) = self.ui.as_mut() else { return };
         if let Some(list) = ui.list.take() {
             cmds.entity(list).despawn();
@@ -518,7 +592,11 @@ impl State {
         let grow = || Node { width: Val { type_: val_type::GROW, value: 0.0, is_auto: false }, overflow: overflow::CLIP, ..Node::base() };
         if self.opts.names {
             let (face, color) = if r.band == Band::Danger { (theme::BOLD, theme::WARN) } else { (theme::REGULAR, theme::TEXT) };
-            self.label(row, &logic::truncate(&r.name, 14), face, 14.0, color, grow(), cmds);
+            let s = self.opts.scale;
+            // The row's non-name columns: padding + border, icon, the gaps, bar, readout.
+            let fixed = 2.0 + (16.0 + 8.0 + 22.0 + 24.0 + 56.0 + if self.opts.values { 44.0 } else { 28.0 }) * s;
+            let name = self.fit(&r.name, face, self.root_w() - fixed);
+            self.label(row, &name, face, 14.0, color, grow(), cmds);
         }
 
         // The bar: fill + empty track. The readout sits beside it — mod nodes below

@@ -102,15 +102,6 @@ pub fn crossings<'a>(rows: &'a [Row], prev: &mut HashMap<u32, Band>) -> Vec<&'a 
     out
 }
 
-pub fn truncate(s: &str, max: usize) -> String {
-    if s.chars().count() <= max {
-        return s.to_string();
-    }
-    let mut t: String = s.chars().take(max - 1).collect();
-    t.push('…');
-    t
-}
-
 /// ShaderHueTranslator.GetHueVector(hue, partial: false, alpha) for item art.
 pub fn hue_vector(hue: u16) -> (f32, f32, f32) {
     let partial = hue & 0x8000 != 0;
@@ -172,9 +163,4 @@ mod tests {
         assert_eq!(hit, [3, 1], "ok→warn and warn→danger ping; danger→warn recovery doesn't");
     }
 
-    #[test]
-    fn truncates_with_ellipsis() {
-        assert_eq!(truncate("short", 14), "short");
-        assert_eq!(truncate("a very long item name", 14), "a very long i…");
-    }
 }
