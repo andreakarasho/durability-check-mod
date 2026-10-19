@@ -156,8 +156,8 @@ fn setup(app: &mut App) {
 export_mod!(setup);
 
 #[system]
-fn declare_options(mut schema: ResMut<ModOptionsSchemaDto>) {
-    let opt = |key: &str, label: &str, kind: u8, default: i32, keywords: &str| ModOptionDto {
+fn declare_options(mut schema: ResMut<ModOptionsSchema>) {
+    let opt = |key: &str, label: &str, kind: u8, default: i32, keywords: &str| ModOption {
         key: key.into(),
         label: label.into(),
         group: "Durability".into(),
@@ -189,9 +189,9 @@ fn declare_options(mut schema: ResMut<ModOptionsSchemaDto>) {
 #[allow(clippy::type_complexity)]
 #[system]
 fn snap(
-    game: Option<Res<GameStateDto>>,
-    values: Option<Res<ModOptionsValuesDto>>,
-    mouse: Option<Res<MouseInputDto>>,
+    game: Option<Res<GameState>>,
+    values: Option<Res<ModOptionsValues>>,
+    mouse: Option<Res<MouseInput>>,
     moved: Query<&Node, (With<UiMovable>, Changed<Node>)>,
     mut cmds: Commands,
 ) {
@@ -235,13 +235,13 @@ fn snap(
 #[system]
 fn feed(
     // Not Changed-filtered: a live equip (0x2E) doesn't reach a mod's
-    // Changed<EquipmentSlotsDto>, only login / unequip do. One row, so the per-frame
+    // Changed<EquipmentSlots>, only login / unequip do. One row, so the per-frame
     // run is cheap.
     // ponytail: back to Changed<> once the host ticks equips for mods.
-    equipment: Query<&EquipmentSlotsDto, With<Player>>,
+    equipment: Query<&EquipmentSlots, With<Player>>,
     graphics: Query<(&Serial, &Graphic, &Hue), (With<IsItem>, Changed<Graphic>)>,
     hues: Query<(&Serial, &Graphic, &Hue), (With<IsItem>, Changed<Hue>)>,
-    props: Query<&EntityPropertiesDto, Changed<EntityPropertiesDto>>,
+    props: Query<&EntityProperties, Changed<EntityProperties>>,
     mut cmds: Commands,
 ) {
     with(|s| {
@@ -400,7 +400,7 @@ impl State {
             .spawn((
                 n,
                 BackgroundColor { value: rgb(theme::BG, 250) },
-                BorderColorDto { r: theme::FRAME.0 as f32, g: theme::FRAME.1 as f32, b: theme::FRAME.2 as f32, a: 255.0 },
+                BorderColor { r: theme::FRAME.0 as f32, g: theme::FRAME.1 as f32, b: theme::FRAME.2 as f32, a: 255.0 },
                 BorderRadius::all(4.0),
                 GlobalZIndex { value: Z },
                 UiNoRightClickClose {},
@@ -506,13 +506,13 @@ impl State {
             .spawn((
                 icon,
                 BackgroundColor { value: rgb(theme::CARD, 255) },
-                BorderColorDto { r: theme::FRAME.0 as f32, g: theme::FRAME.1 as f32, b: theme::FRAME.2 as f32, a: 255.0 },
+                BorderColor { r: theme::FRAME.0 as f32, g: theme::FRAME.1 as f32, b: theme::FRAME.2 as f32, a: 255.0 },
                 BorderRadius::all(2.0),
                 ChildOf::new(row),
             ))
             .id();
         let (hx, hy, hz) = logic::hue_vector(r.hue);
-        let art = UiCustomDto { kind: ART, asset_id: r.graphic as u32, hue_x: hx, hue_y: hy, hue_z: hz, stacked: false };
+        let art = UiCustom { kind: ART, asset_id: r.graphic as u32, hue_x: hx, hue_y: hy, hue_z: hz, stacked: false };
         cmds.spawn((Node { width: self.px(20.0), height: self.px(20.0), ..Node::base() }, art, ChildOf::new(icon)));
 
         let grow = || Node { width: Val { type_: val_type::GROW, value: 0.0, is_auto: false }, overflow: overflow::CLIP, ..Node::base() };

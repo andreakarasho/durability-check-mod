@@ -48,4 +48,4 @@ make test    # OPL parsing / bands / order / crossing tests (src/logic.rs, host 
 | window | `cuo:ui/*` nodes in the host's UiTheme palette; `cuo:ui/movable` |
 
 The equipment query is not `Changed`-filtered: the host doesn't tick a live equip
-(0x2E) for mods' `Changed<EquipmentSlotsDto>`, only login and unequip.
+(0x2E) for mods' `Changed<EquipmentSlots>`, only login and unequip.
