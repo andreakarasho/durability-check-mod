@@ -363,7 +363,7 @@ impl State {
 
     fn button(&self, parent: Entity, text: &str, cmds: &mut Commands) -> Entity {
         let n = Node {
-            height: self.px(14.0),
+            height: self.px(18.0),
             padding: UiRect { left: self.px(4.0), right: self.px(4.0), top: Val::px(0.0), bottom: Val::px(0.0) },
             justify_content: justify_content::CENTER,
             align_items: align_items::CENTER,
@@ -374,7 +374,7 @@ impl State {
             BackgroundColor { value: rgb(theme::CONTROL, 255) },
             BorderRadius::all(3.0),
             Text { value: text.into() },
-            self.font(theme::BOLD, 8.0),
+            self.font(theme::BOLD, 14.0),
             TextColor { value: rgb(theme::TEXT_MUTED, 255) },
             TextWrap { kind: text_wrap_kind::NONE },
             Interaction::NONE,
@@ -422,8 +422,8 @@ impl State {
         let header = cmds.spawn((header, ChildOf::new(root))).id();
         let title = if self.opts.names { "Equipment Durability" } else { "Equipment" };
         let grow = Node { width: Val { type_: val_type::GROW, value: 0.0, is_auto: false }, ..Node::base() };
-        self.label(header, title, theme::REGULAR, 9.0, theme::TEXT_MUTED, grow, cmds);
-        let overall = self.label(header, "—", theme::BOLD, 9.0, theme::TEXT, Node::base(), cmds);
+        self.label(header, title, theme::REGULAR, 14.0, theme::TEXT_MUTED, grow, cmds);
+        let overall = self.label(header, "—", theme::BOLD, 14.0, theme::TEXT, Node::base(), cmds);
         let min_btn = self.button(header, if self.saved.minimized { "+" } else { "-" }, cmds);
         let lock_btn = self.button(header, if self.saved.locked { "LOCK" } else { "MOVE" }, cmds);
         // Separator under the header.
@@ -458,7 +458,7 @@ impl State {
         if shown.is_empty() && !self.saved.minimized {
             let msg = if rows.is_empty() { "Equip an item with durability to start tracking." } else { "All items above the hide threshold." };
             let n = Node { width: Val::percent(100.0), padding: UiRect { left: Val::px(0.0), right: Val::px(0.0), top: self.px(4.0), bottom: self.px(4.0) }, ..Node::base() };
-            let e = self.label(list, msg, theme::REGULAR, 8.0, theme::TEXT_MUTED, n, cmds);
+            let e = self.label(list, msg, theme::REGULAR, 14.0, theme::TEXT_MUTED, n, cmds);
             cmds.entity(e).insert(TextWrap { kind: text_wrap_kind::WORDS });
         }
         let mut entities = Vec::with_capacity(shown.len());
@@ -518,7 +518,7 @@ impl State {
         let grow = || Node { width: Val { type_: val_type::GROW, value: 0.0, is_auto: false }, overflow: overflow::CLIP, ..Node::base() };
         if self.opts.names {
             let (face, color) = if r.band == Band::Danger { (theme::BOLD, theme::WARN) } else { (theme::REGULAR, theme::TEXT) };
-            self.label(row, &logic::truncate(&r.name, 14), face, 9.0, color, grow(), cmds);
+            self.label(row, &logic::truncate(&r.name, 14), face, 14.0, color, grow(), cmds);
         }
 
         // The bar: fill + empty track. The readout sits beside it — mod nodes below
@@ -551,7 +551,7 @@ impl State {
             format!("{}%", r.reading.percent.round())
         };
         let n = Node { width: self.px(if self.opts.values { 44.0 } else { 28.0 }), justify_content: justify_content::END, ..Node::base() };
-        self.label(row, &readout, theme::BOLD, 8.0, band_color(r.band), n, cmds);
+        self.label(row, &readout, theme::BOLD, 14.0, band_color(r.band), n, cmds);
         row
     }
 
