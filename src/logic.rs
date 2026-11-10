@@ -102,19 +102,6 @@ pub fn crossings<'a>(rows: &'a [Row], prev: &mut HashMap<u32, Band>) -> Vec<&'a 
     out
 }
 
-/// ShaderHueTranslator.GetHueVector(hue, partial: false, alpha) for item art.
-pub fn hue_vector(hue: u16) -> (f32, f32, f32) {
-    let partial = hue & 0x8000 != 0;
-    let hue = (hue & 0x7FFF) as i32;
-    if hue == 0 {
-        return (0.0, 0.0, 1.0);
-    }
-    if hue & 0x4000 != 0 {
-        return (hue as f32, 7.0, 1.0); // SHADER_SPECTRAL
-    }
-    (hue as f32 - 1.0, if partial { 2.0 } else { 1.0 }, 1.0)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

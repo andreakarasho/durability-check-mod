@@ -1,0 +1,34 @@
+<!doctype html>
+<!-- The Equipment Durability panel (durability-check-mod). The mod sizes the window (the body fills
+     it) and sets the body's font-size from its "Panel size" option: every size in the sheet is in
+     em, so the whole panel scales with it. It fills #title and #overall, labels #min and #lock, adds
+     .ok / .warn / .danger to #overall, .no-names and .values to #list for its options, and .on to
+     the message to show. Per worn item it clones the row template into #list: the band's class
+     (.ok / .warn / .danger) and the data-arg on the row, the art in [data-part=icon], the text of
+     [data-part=name] and [data-part=readout], the width of [data-part=fill]. Drag the bottom-right
+     corner to resize. -->
+<html>
+<head><link rel="stylesheet" href="durability.css"></head>
+<body id="panel" data-theme data-right-click-close="false">
+  <template id="row">
+    <div class="row" data-action="mod">
+      <div class="icon"><img data-part="icon" src="art:0"></div>
+      <div class="name" data-part="name"></div>
+      <div class="bar"><div class="fill" data-part="fill"></div></div>
+      <div class="readout" data-part="readout"></div>
+    </div>
+  </template>
+
+  <div id="header">
+    <div id="title">Equipment Durability</div>
+    <div id="overall">—</div>
+    <button id="min" data-action="mod" data-arg="min">-</button>
+    <button id="lock" data-action="mod" data-arg="lock">MOVE</button>
+  </div>
+  <div id="sep"></div>
+  <div id="no-items" class="empty">Equip an item with durability to start tracking.</div>
+  <div id="all-hidden" class="empty">All items above the hide threshold.</div>
+  <div id="list"></div>
+  <div id="grip"></div>
+</body>
+</html>

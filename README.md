@@ -21,7 +21,10 @@ Settings live on **Options → Mods → Durability** (per profile): enable, warn
 and danger (30%) thresholds, alerts, hide items above N% (100 = off; overall and alerts
 still cover every item), panel size 100–250%, readout percent / values, item names.
 
-Position, lock and minimized persist in `Data/Mods/durability-check/storage.json`.
+Position, size, lock and minimized persist in `Data/Mods/durability-check/storage.json`.
+
+The panel is a page: it follows the client's UI theme, and the copy exported to
+`Data/Mods/durability-check/ui/durability.html` / `.css` is yours to restyle (it reloads on save).
 
 ## Build
 
@@ -40,12 +43,12 @@ make test    # OPL parsing / bands / order / crossing tests (src/logic.rs, host 
 |---|---|
 | worn items | `cuo:ent/equipment` on the player (serial per layer) |
 | durability | `cuo:ent/properties` — cliloc 1060639 / 1061645 `cur\tmax` |
-| icons | `cuo:ui/custom` art (kind 3), item hue |
+| icons | `art:GRAPHIC?hue=HUE` images on the page |
 | hover tooltip | `cuo:ui/tooltip-serial` |
 | move to backpack | `actions::move_item` |
 | alerts | `cuo:chat/message`, kind 1 (system log) |
 | settings | `cuo:options/schema` / `values` |
-| window | `cuo:ui/*` nodes in the host's UiTheme palette; `cuo:ui/movable` |
+| window | an HTML/CSS page (`src/durability.html`, `.css`) with `<body data-theme>`; `cuo:ui/movable`, `cuo:ui/resizable` on its root |
 
 The equipment query is not `Changed`-filtered: the host doesn't tick a live equip
 (0x2E) for mods' `Changed<EquipmentSlots>`, only login and unequip.
