@@ -50,9 +50,9 @@ const OPT_SCALE: &str = "scale";
 // lacks — the warn band.
 mod theme {
     pub type Rgb = (u8, u8, u8);
-    pub const BG: Rgb = (9, 12, 17);
+    pub const BG: Rgb = (13, 17, 23);
     pub const CARD: Rgb = (12, 16, 22);
-    pub const FRAME: Rgb = (39, 45, 54);
+    pub const FRAME: Rgb = (52, 61, 74);
     pub const ROW_HOVER: Rgb = (26, 33, 43);
     pub const CONTROL: Rgb = (28, 36, 47);
     pub const ACCENT: Rgb = (47, 191, 174);
@@ -398,7 +398,7 @@ impl State {
         cmds.spawn((
             n,
             BackgroundColor { value: rgb(theme::CONTROL, 255) },
-            BorderRadius::all(3.0),
+            BorderRadius::all(4.0),
             Text { value: text.into() },
             self.font(theme::BOLD, 14.0),
             TextColor { value: rgb(theme::TEXT_MUTED, 255) },
@@ -469,9 +469,9 @@ impl State {
         let root = cmds
             .spawn((
                 n,
-                BackgroundColor { value: rgb(theme::BG, 250) },
+                BackgroundColor { value: rgb(theme::BG, 247) },
                 BorderColor { r: theme::FRAME.0 as f32, g: theme::FRAME.1 as f32, b: theme::FRAME.2 as f32, a: 255.0 },
-                BorderRadius::all(4.0),
+                BorderRadius::all(8.0),
                 GlobalZIndex { value: Z },
                 UiNoRightClickClose {},
                 UiContainsByBounds {},
@@ -559,7 +559,7 @@ impl State {
                 n,
                 BackgroundColor { value: base.clone() },
                 UiHoverTint { normal: base, hover: rgb(theme::ROW_HOVER, 255) },
-                BorderRadius::all(3.0),
+                BorderRadius::all(4.0),
                 UiTooltipSerial { serial: r.serial },
                 Interaction::NONE,
                 UiNoWindowDrag {},
